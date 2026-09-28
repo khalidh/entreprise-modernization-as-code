@@ -1,0 +1,233 @@
+application:
+  name: customer_management
+  purpose: Provide an application for managing customers.
+  capabilities:
+    - create_customer
+    - view_customer
+    - modify_customer
+    - delete_customer
+    - search_customers
+    - list_customers
+
+entities:
+  customer:
+    description: A person or organization registered in the system.
+    fields:
+      customer_id:
+        type: integer
+        required: true
+        unique: true
+        description: Unique customer identifier.
+        rules:
+          - BR-001
+          - BR-006
+      name:
+        type: string
+        max_length: 100
+        required: true
+        description: Customer name.
+        rules:
+          - BR-002
+      email:
+        type: string
+        max_length: 150
+        required: true
+        unique: true
+        format: email
+        description: Customer email.
+        rules:
+          - BR-003
+          - BR-004
+      phone:
+        type: string
+        max_length: 30
+        required: false
+        description: Phone number.
+      city:
+        type: string
+        max_length: 80
+        required: false
+        description: City.
+      country:
+        type: string
+        max_length: 80
+        required: false
+        description: Country.
+      active:
+        type: boolean
+        required: true
+        default: true
+        description: Customer status.
+        rules:
+          - BR-005
+
+    key:
+      - customer_id
+
+    operations:
+      - name: create
+        action: CREATE
+        input_fields:
+          - customer_id
+          - name
+          - email
+          - phone
+          - city
+          - country
+          - active
+        rules:
+          - BR-001
+          - BR-002
+          - BR-003
+          - BR-004
+          - BR-005
+      - name: read
+        action: READ
+        input_fields:
+          - customer_id
+        errors:
+          - EC-005
+      - name: update
+        action: UPDATE
+        input_fields:
+          - customer_id
+          - name
+          - email
+          - phone
+          - city
+          - country
+          - active
+        rules:
+          - BR-006
+      - name: delete
+        action: DELETE
+        input_fields:
+          - customer_id
+        errors:
+          - EC-005
+      - name: search
+        action: SEARCH
+        criteria:
+          exact:
+            - customer_id
+            - name
+            - email
+            - city
+            - country
+          partial:
+            - name
+            - email
+            - city
+
+    list_view:
+      fields:
+        - customer_id
+        - name
+        - email
+        - city
+        - country
+        - active
+      default_sort:
+        field: name
+        direction: ascending
+
+rules:
+  - id: BR-001
+    statement: customer_id must be unique.
+    applies_to:
+      - customer.customer_id
+  - id: BR-002
+    statement: name is mandatory.
+    applies_to:
+      - customer.name
+  - id: BR-003
+    statement: email is mandatory.
+    applies_to:
+      - customer.email
+  - id: BR-004
+    statement: email must be unique.
+    applies_to:
+      - customer.email
+  - id: BR-005
+    statement: active defaults to true.
+    applies_to:
+      - customer.active
+  - id: BR-006
+    statement: customer_id cannot be modified after creation.
+    applies_to:
+      - customer.customer_id
+
+happy_paths:
+  - id: HP-001
+    name: Create customer
+    given: The user opens Customer Management.
+    when:
+      action: create
+      values:
+        name: Jean Dupont
+        email: jean.dupont@example.com
+        city: Nantes
+        country: France
+    then:
+      - A new customer is created.
+      - active defaults to true.
+    rules:
+      - BR-005
+  - id: HP-002
+    name: Update customer
+    given: An existing customer.
+    when:
+      action: update
+      changes:
+        - city
+    then:
+      - The customer is updated.
+  - id: HP-003
+    name: Search customer
+    given: Existing customers.
+    when:
+      action: search
+      criteria:
+        name: A matching name
+    then:
+      - Matching customers are displayed.
+
+edge_cases:
+  - id: EC-001
+    name: Missing name
+    when: name is empty.
+    then: Creation must fail.
+    rules:
+      - BR-002
+  - id: EC-002
+    name: Missing email
+    when: email is empty.
+    then: Creation must fail.
+    rules:
+      - BR-003
+  - id: EC-003
+    name: Duplicate email
+    when: Another customer already has the email.
+    then: Creation must fail.
+    rules:
+      - BR-004
+  - id: EC-004
+    name: Invalid email
+    when: Email format is invalid.
+    then: Creation must fail.
+  - id: EC-005
+    name: Unknown customer
+    when: A requested customer_id does not exist.
+    then: The application must report that the customer was not found.
+
+acceptance_criteria:
+  - customers can be created
+  - customers can be displayed
+  - customers can be updated
+  - customers can be deleted
+  - customers can be searched
+  - mandatory fields are validated
+  - duplicate emails are rejected
+  - invalid emails are rejected
+  - happy paths pass
+  - edge cases pass
